@@ -14,6 +14,10 @@ jobs:
   check-and-build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+  env:
+    POSTGRES_USER: counter_ci
+    POSTGRES_PASSWORD: counter_ci_password
+    POSTGRES_DB: counter_ci_db
 
     steps:
       - name: Download repository code
@@ -33,5 +37,25 @@ jobs:
       - name: Check JavaScript syntax
         run: npm run check
 
-      - name: Build Docker image
+           - name: Build and start app with PostgreSQL
+        run: docker compose up -d --build
+
+      - name: Check counter reads and updates
+        run: |
+          curl -fsS --retry 15 --retry-delay 2 --retry-connrefused \
+            http://127.0.0.1:3006/ | grep -F '<p class="count">0</p>'
+
+          curl -fsS -X POST -o /dev/null \
+            http://127.0.0.1:3006/increment
+
+          curl -fsS http://127.0.0.1:3006/ \
+            | grep -F '<p class="count">1</p>'
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop test containers
+        if: always()
+        run: docker compose down
         run: docker build -t persistent-counter:ci .
