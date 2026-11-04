@@ -43,7 +43,7 @@ jobs:
 
       - name: Check counter reads and updates
         run: |
-          curl -fsS --retry 15 --retry-delay 2 --retry-connrefused \
+          curl -fsS --retry 15 --retry-delay 2 --retry-all-errors \
             http://127.0.0.1:3006/ | grep -F '<p class="count">0</p>'
 
           curl -fsS -X POST -o /dev/null \
